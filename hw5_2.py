@@ -1,5 +1,5 @@
 def generator_numbers(text: str):
-    number=''
+    number = ''
     for symbol in text:
         if symbol == ' ':
             try:
@@ -13,6 +13,7 @@ def generator_numbers(text: str):
                 number = ''
         else:
             number += symbol
+
 
 def sum_profit(text: str, func: callable):
     return sum(func(text))
