@@ -1,18 +1,13 @@
 def generator_numbers(text: str):
-    number = ''
-    for symbol in text:
-        if symbol == ' ':
-            try:
-                # This processing for regional settings is not complete, but...
-                yield float(number.replace(',', '.'))
-            except ValueError:
-                pass
-            except:
-                pass
-            finally:
-                number = ''
-        else:
-            number += symbol
+    for part in text.split(' '):
+        try:
+            yield float(part.replace(',', '.'))
+            # This processing for regional settings is not complete, but
+            # it's for memory.
+        except ValueError:
+            pass
+        except Exception:
+            pass
 
 
 def sum_profit(text: str, func: callable):
