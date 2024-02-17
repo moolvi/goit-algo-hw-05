@@ -4,13 +4,16 @@ import collections
 from pathlib import Path
 from datetime import datetime
 
+LEVELS = ('INFO', 'ERROR', 'DEBUG', 'WARNING')
+KEYS = ('data', 'time', 'level', 'messege')
+
+display_with_level = None
+logs = None
+
 
 def parse_log_line(line: str) -> dict:
-    levels = ('INFO', 'ERROR', 'DEBUG', 'WARNING')
-    keys = ('data', 'time', 'level', 'messege')
-    
     try:
-        values = line.split(' ', len(keys)-1)
+        values = line.split(' ', len(KEYS) - 1)
 
         if len(values) != 4:
             raise IndexError
@@ -18,15 +21,16 @@ def parse_log_line(line: str) -> dict:
             raise ValueError
         if not datetime.strptime(values[1], '%H:%M:%S'):
             raise ValueError
-        if values[2] not in levels:
+        if values[2] not in LEVELS:
             raise ValueError
         if len(values[3]) < 1:
             raise ValueError
-        
-        return {keys[a]: values[a] for a in range(4)}
+        if not display_with_level in LEVELS:
+            raise ValueError
+        return {KEYS[a]: values[a] for a in range(4)}
     
     except ValueError:
-        return f'Unknows values in the line: {line}'
+        return f'Unknown values in the line: {line}'
     except IndexError:
         return f'Unknown structure in the line: {line}'
     except Exception:
@@ -42,13 +46,13 @@ def load_logs(file_path: str) -> list:
             for row in file.readlines():
                 rows.append(parse_log_line(row.strip()))
     except FileNotFoundError:
-        return rows
+        return f'File not found: {file_path}'
     except ValueError:
-        return rows
+        return f'Unknow value in file: {row}'
     except IndexError:
-        return rows
-    except:
-        return rows
+        return f'The number of lines has changed: {row}'
+    except Exception:
+        return f'Unknow Error: {row}'
     finally:
         return rows
 
@@ -62,27 +66,39 @@ def count_logs_by_level(logs: list) -> dict:
 
 
 def display_log_counts(counts: dict):
+    size_key = len(max(*counts.keys(), 'Рівень логування')) + 1
+    size_value = len(max(str(item) for item in {*counts.values(), "Кількість"})) + 1
 
-    size_key = len(max(str(item) for item in (*counts.keys(), 'Рівень логування ')))
-    size_value = max(len(str(item)) for item in {*counts.values(), " Кількість"})
-
-    print(f'{'Рівень логування ':<{size_key}}|{' Кількість':<{size_value}}')
+    print(f'{'Рівень логування':<{size_key}}|{'Кількість':>{size_value}}')
     print(f'{'-' * size_key}|{'-' * size_value}')
 
     for key, value in counts.items(): 
-        print(f'{key:<{size_key}}| {value:<{size_value}}')
+        print(f'{key:<{size_key}}|{value:>{2}}')
+    
+    if display_with_level in LEVELS:
+        user_level = filter_logs_by_level(logs, display_with_level)
+        print(f"\nДеталі логів для рівня '{display_with_level}':")
+        
+        for item in user_level:
+            print(f'{item[KEYS[0]]} {item[KEYS[1]]} - {item[KEYS[3]]}')
 
 
 def main():
+    global display_with_level
+    global logs
+
     user_input = ''
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         user_input = sys.argv[1]
+        display_with_level = sys.argv[2]
+    
     path = Path(user_input)
     if path.exists():
         if path.is_file():
-            display_log_counts(count_logs_by_level(load_logs(path)))
+            logs = load_logs(path)
+            display_log_counts(count_logs_by_level(logs))
         else:
-            print(f'{user_input} isn\'t file')
+            print(f'{path} isn\'t file')
     else:
         print(f'{path.absolute()} isn\'t exists')
 
